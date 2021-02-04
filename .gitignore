@@ -1,0 +1,8 @@
+.*/
+.vscode/
+__pycache__/
+venv/
+
+*.pyc
+example.py
+example2.py
