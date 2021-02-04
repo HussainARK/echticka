@@ -2,7 +2,10 @@
 .vscode/
 __pycache__/
 venv/
+build/
+dist/
 
+echticka.spec
 *.pyc
 example.py
 example2.py
