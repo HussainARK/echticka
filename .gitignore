@@ -9,3 +9,4 @@ echticka.spec
 *.pyc
 example.py
 example2.py
+dist.cmd
