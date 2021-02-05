@@ -14,7 +14,7 @@ print(fr"""
 |_____\___|_| |_|\__|_|\___|_|\_\__,_|
 
 Version: v0.1.1-alpha
-Made by HussainARK with ♥ in Iraq, Enjoyed Everywhere""")
+Made in Iraq, Enjoyed Everywhere.""")
 
 DISCONNECT_MESSAGE = "!dc"
 HEADER = 2048
