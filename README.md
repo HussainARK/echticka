@@ -1,17 +1,22 @@
-![Demo](./demo.png)
+![Echticka](echticka.png)
 
 # Echticka
 A Basic CLI-Based Communications App.
+
+![Demo](./demo.png)
 
 ## Some Info
 This Program mainly relies on The Python `socket` Module.
 
 
-The Server is Based on making a New Thread for handling Each Client,
-The Client Though has only 2 Threads, 
-One for Sending Messages and the Other is for logging Any New Sent Message From Users in the Server.
+The Server is Based on making a New Thread for handling Each Client.
+
+The Client Though has only 2 Threads, <br />
+One for Sending Messages And, <br />
+the Other is for logging Any New Sent Message From Users in the Server.
 
 ## Setup
 1. Download The Latest Client & Server Releases Files from The Releases Tab.
-2. Run The Server Python File in a Server Environment.
-3. Run the Client Python File, Connect to the Server & Enjoy!
+2. Add Server Configuration in `echticka.config` 
+3. Run The Server Python File in a Server Environment.
+4. Run the Client Python File, Connect to the Server & Enjoy!

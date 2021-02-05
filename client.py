@@ -1,23 +1,26 @@
 import pickle
 import socket
 from threading import Thread
-from colorama import init, Fore
 import time
+import getpass
 
-init()
-print(f'{Fore.LIGHTWHITE_EX}Enter your Username: {Fore.RESET}', end='')
+print(f'Enter your Username: ', end='')
 username = input()
 
-print(f"{Fore.LIGHTWHITE_EX}Server Host: {Fore.RESET}", end='')
+print(f"Server Host: ", end='')
 tcp_hostname = input()
 
-print(f"{Fore.LIGHTWHITE_EX}Server Port (Default: 9024): {Fore.RESET}", end='')
+print(f"Server Port (Default: 9024): ", end='')
 tcp_port = input()
 
 if not tcp_port:
     tcp_port = 9024
 else:
-    tcp_port = int(tcp_port)
+    if int(tcp_port) < 22 or int(tcp_port) > 20000:
+        print(f"Given Port is Invalid")
+        quit()
+    else:
+        tcp_port = int(tcp_port)
 
 DISCONNECT_MESSAGE = "!dc"
 HEADER = 2048
@@ -31,12 +34,20 @@ client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 try:
     client.connect(SERVER_ADDR)
 except:
-    print(f"{Fore.LIGHTRED_EX}Couldn't connect to The Server!{Fore.RESET}")
+    print(f"Couldn't connect to The Server")
     quit()
 
-print(f"{Fore.CYAN}Registering the Client...{Fore.RESET}")
+print(f"Registering the Client...")
 
-client.send(pickle.dumps({'username': username}))
+init_resp = pickle.loads(client.recv(HEADER))
+
+if init_resp['password_required']:
+    print(f"Server Password: ", end='')
+    password = getpass.getpass("")
+    client.send(pickle.dumps({'username': username, 'password': password}))
+else:
+    print(f"No Password needed, Accessing The Server...")
+    client.send(pickle.dumps({'username': username}))
 
 
 def send(msg):
@@ -53,89 +64,94 @@ try:
     init_resp = pickle.loads(client.recv(HEADER))
 except:
     send(DISCONNECT_MESSAGE)
-    print(f"{Fore.LIGHTWHITE_EX}Disconnected from the Server: {Fore.MAGENTA}{SERVER_ADDR[0]}:{SERVER_ADDR[1]}"
-          f"{Fore.RESET}")
+    print(f"Disconnected from the Server: {SERVER_ADDR[0]}:{SERVER_ADDR[1]}"
+          f"")
     client.close()
     quit()
 
-sessionid = init_resp['sessionid']
-
-if not init_resp['username']:
-    print(f"{Fore.LIGHTRED_EX}Invalid Username{Fore.RESET}")
+if not init_resp['authorized']:
+    print(f"Wrong Password Given")
+    print(f"Disconnecting")
     client.close()
-    exit()
 else:
-    username = init_resp['username']
+    sessionid = init_resp['sessionid']
 
-print(f"{Fore.CYAN}Connected to the Server: {Fore.MAGENTA}{SERVER_ADDR[0]}:{SERVER_ADDR[1]}{Fore.RESET}")
+    if not init_resp['username']:
+        print(f"Invalid Username")
+        client.close()
+        exit()
+    else:
+        username = init_resp['username']
+
+    print(f"Connected to the Server: {SERVER_ADDR[0]}:{SERVER_ADDR[1]}")
 
 
-def get_messages(sure):
-    if sure:
-        try:
-            while True:
-                response = pickle.loads(client.recv(HEADER))
-                if not response['sessionid'] == "69420NICE":
-                    if not response['sessionid'] == sessionid:
-                        if response['message'] is None:
-                            if response['new']:
-                                print(f"{Fore.GREEN}{response['username']} JOINED THE CHAT{Fore.RESET}")
-                            elif response['disconnected']:
-                                print(f"{Fore.LIGHTRED_EX}{response['username']} LEFT THE CHAT{Fore.RESET}")
-                        else:
-                            print(f"{Fore.YELLOW}{response['username']}: {Fore.LIGHTWHITE_EX}{response['message']}"
-                                  f"{Fore.RESET}")
-                else:
-                    print(f"{Fore.LIGHTRED_EX}THE SERVER ATTEMPTS TO SHUTDOWN{Fore.RESET}")
-                    send(DISCONNECT_MESSAGE)
+    def get_messages(sure):
+        if sure:
+            try:
+                while True:
+                    response = pickle.loads(client.recv(HEADER))
+                    if not response['sessionid'] == "69420NICE":
+                        if not response['sessionid'] == sessionid:
+                            if response['message'] is None:
+                                if response['new']:
+                                    print(f"{response['username']} JOINED THE CHAT")
+                                elif response['disconnected']:
+                                    print(f"{response['username']} LEFT THE CHAT")
+                            else:
+                                print(f"{response['username']}: {response['message']}"
+                                      f"")
+                    else:
+                        print(f"THE SERVER ATTEMPTS TO SHUTDOWN")
+                        send(DISCONNECT_MESSAGE)
+                        print(
+                            f"Disconnected from the Server: {SERVER_ADDR[0]}:{SERVER_ADDR[1]}"
+                            f"")
+                        client.close()
+                        quit()
+            except:
+                time.sleep(0.1)
+                print(f"Disconnected!?")
+                quit()
+        else:
+            pass
+
+
+    print(f'To Disconnect, send: {DISCONNECT_MESSAGE}')
+
+    print(f'You joined as {username} '
+          f'with Session ID {sessionid}, '
+          f'Enjoy!\n')
+
+    thread = Thread(target=get_messages, args=(True,))
+    thread.start()
+
+    try:
+        while True:
+            if client:
+                message = input()
+                if message == DISCONNECT_MESSAGE:
+                    send(message)
                     print(
-                        f"{Fore.LIGHTWHITE_EX}Disconnected from the Server: {Fore.MAGENTA}{SERVER_ADDR[0]}:{SERVER_ADDR[1]}"
-                        f"{Fore.RESET}")
+                        f"Disconnected from the Server: {SERVER_ADDR[0]}:{SERVER_ADDR[1]}"
+                        f"")
                     client.close()
                     quit()
-        except:
-            time.sleep(0.1)
-            print(f"{Fore.LIGHTRED_EX}Disconnected!?{Fore.RESET}")
-            quit()
-    else:
-        pass
-
-
-print(f'{Fore.LIGHTWHITE_EX}{Fore.CYAN}To Disconnect, send: {Fore.RED}{DISCONNECT_MESSAGE}{Fore.RESET}')
-
-print(f'{Fore.CYAN}You joined as {Fore.RESET}{Fore.YELLOW}{username}{Fore.RESET} '
-      f'{Fore.CYAN}with Session ID {Fore.RESET}{Fore.LIGHTRED_EX}{sessionid}{Fore.RESET}{Fore.CYAN}, '
-      f'{Fore.RESET}{Fore.GREEN}Enjoy!{Fore.RESET}\n')
-
-thread = Thread(target=get_messages, args=(True,))
-thread.start()
-
-try:
-    while True:
-        if client:
-            message = input()
-            if message == DISCONNECT_MESSAGE:
-                send(message)
-                print(
-                    f"{Fore.LIGHTWHITE_EX}Disconnected from the Server: {Fore.MAGENTA}{SERVER_ADDR[0]}:{SERVER_ADDR[1]}"
-                    f"{Fore.RESET}")
-                client.close()
-                quit()
+                else:
+                    send(message)
             else:
-                send(message)
-        else:
-            break
+                break
 
-except KeyboardInterrupt:
-    send(DISCONNECT_MESSAGE)
-    print(f"{Fore.LIGHTWHITE_EX}Disconnected from the Server: {Fore.MAGENTA}{SERVER_ADDR[0]}:{SERVER_ADDR[1]}"
-          f"{Fore.RESET}")
-    client.close()
-    quit()
+    except KeyboardInterrupt:
+        send(DISCONNECT_MESSAGE)
+        print(f"Disconnected from the Server: {SERVER_ADDR[0]}:{SERVER_ADDR[1]}"
+              f"")
+        client.close()
+        quit()
 
-except EOFError:
-    send(DISCONNECT_MESSAGE)
-    print(f"{Fore.LIGHTWHITE_EX}Disconnected from the Server: {Fore.MAGENTA}{SERVER_ADDR[0]}:{SERVER_ADDR[1]}"
-          f"{Fore.RESET}")
-    client.close()
-    quit()
+    except EOFError:
+        send(DISCONNECT_MESSAGE)
+        print(f"Disconnected from the Server: {SERVER_ADDR[0]}:{SERVER_ADDR[1]}"
+              f"")
+        client.close()
+        quit()
