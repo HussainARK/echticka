@@ -4,14 +4,11 @@ from threading import Thread
 import time
 import getpass
 
-print(f'Enter your Username: ', end='')
-username = input()
+username = input("Enter your Username: ")
 
-print(f"Server Host: ", end='')
-tcp_hostname = input()
+tcp_hostname = input("Server Host: ")
 
-print(f"Server Port (Default: 9024): ", end='')
-tcp_port = input()
+tcp_port = input("Server Port (Default: 9024): ")
 
 if not tcp_port:
     tcp_port = 9024
@@ -42,8 +39,7 @@ print(f"Registering the Client...")
 init_resp = pickle.loads(client.recv(HEADER))
 
 if init_resp['password_required']:
-    print(f"Server Password: ", end='')
-    password = getpass.getpass("")
+    password = getpass.getpass("Server Password: ")
     client.send(pickle.dumps({'username': username, 'password': password}))
 else:
     print(f"No Password needed, Accessing The Server...")

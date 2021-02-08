@@ -50,15 +50,15 @@ for filename in os.listdir('.'):
                                 f"Set Host as {HOST} From Configuration File")
                         else:
                             log(f"CONFIG",
-                                f"Given Host is Invalid, Set Host as  "
+                                f"Given Host is Invalid, Set Host as {HOST} "
                                 f"From Auto-Configuration")
                     else:
                         log(f"CONFIG",
-                            f"Given Host is Invalid, Set Host as  "
+                            f"Given Host is Invalid, Set Host as {HOST} "
                             f"From Auto-Configuration")
                 except ValueError:
                     log(f"CONFIG",
-                        f"Given Host is Invalid, Set Host as  "
+                        f"Given Host is Invalid, Set Host as {HOST} "
                         f"From Auto-Configuration")
             else:
                 log(f"CONFIG",
