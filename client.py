@@ -1,8 +1,8 @@
+import getpass
 import pickle
 import socket
-from threading import Thread
 import time
-import getpass
+from threading import Thread
 
 username = None
 tcp_hostname = None
@@ -48,6 +48,7 @@ print(f"Registering the Client...")
 init_resp = pickle.loads(client.recv(HEADER))
 
 if init_resp['password_required']:
+    password = None
     try:
         password = getpass.getpass("Server Password: ")
     except:
@@ -92,6 +93,7 @@ else:
         username = init_resp['username']
 
     print(f"Connected to the Server: {SERVER_ADDR[0]}:{SERVER_ADDR[1]}")
+    print(f"You can disconnect using Ctrl+C")
 
 
     def get_messages(sure):
@@ -124,8 +126,6 @@ else:
         else:
             pass
 
-
-    print(f'To Disconnect, send: {DISCONNECT_MESSAGE}')
 
     print(f'You joined as {username} '
           f'with Session ID {sessionid}, '

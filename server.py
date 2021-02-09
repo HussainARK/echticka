@@ -1,10 +1,10 @@
+import json
+import logging
+import os
 import pickle
 import socket
 import threading
-import os
-import json
 import uuid
-import logging
 
 print(fr"""
  _____     _     _   _      _
@@ -248,7 +248,9 @@ def handle_client(connection: socket.socket, address: tuple):
                     except:
                         connected = False
                         clients.remove(connection)
-                        users.remove({'username': client_username, 'sessionid': client_sessionid, 'connection': connection})
+                        users.remove(
+                            {'username': client_username, 'sessionid': client_sessionid, 'connection': connection}
+                        )
                         with clients_lock:
                             if len(clients) != 0:
                                 for a_client in clients:
