@@ -16,6 +16,14 @@ print(fr"""
 Version: v0.1.1-alpha
 Made in Iraq, Enjoyed Everywhere.""")
 
+
+class User:
+    def __init__(self, username: str, sessionid: str, connection: socket.socket):
+        self.username = username
+        self.sessionid = sessionid
+        self.connection = connection
+
+
 DISCONNECT_MESSAGE = "!dc"
 HEADER = 2048
 
@@ -36,7 +44,13 @@ def log(sender, message):
 
 for filename in os.listdir('.'):
     if filename.strip() == "echticka.config":
-        config = json.loads(open(filename).read())
+        config = None
+
+        try:
+            config = json.loads(open(filename).read())
+        except json.JSONDecodeError:
+            logger.error(f"[ERROR] Can't parse The echticka.config File, using Default Configuration")
+            break
 
         try:
             if config['host']:
@@ -47,25 +61,25 @@ for filename in os.listdir('.'):
                         if int(num1) >= 0 and int(num2) >= 0 and int(num3) >= 0 and int(num4) >= 0:
                             HOST = config['host']
                             log(f"CONFIG",
-                                f"Set Host as {HOST} From Configuration File")
+                                f"Set Host as ({HOST}) From Configuration File")
                         else:
                             log(f"CONFIG",
-                                f"Given Host is Invalid, Set Host as {HOST} "
+                                f"Given Host is Invalid, Set Host as ({HOST}) "
                                 f"From Auto-Configuration")
                     else:
                         log(f"CONFIG",
-                            f"Given Host is Invalid, Set Host as {HOST} "
+                            f"Given Host is Invalid, Set Host as ({HOST}) "
                             f"From Auto-Configuration")
                 except ValueError:
                     log(f"CONFIG",
-                        f"Given Host is Invalid, Set Host as {HOST} "
+                        f"Given Host is Invalid, Set Host as ({HOST}) "
                         f"From Auto-Configuration")
             else:
                 log(f"CONFIG",
-                    f"Set Host as {HOST} From Auto-Configuration")
+                    f"Set Host as ({HOST}) From Auto-Configuration")
         except KeyError:
             log(f"CONFIG",
-                f"Set Host as {HOST} From Auto-Configuration")
+                f"Set Host as ({HOST}) From Auto-Configuration")
 
         try:
             if config['port']:
@@ -75,13 +89,13 @@ for filename in os.listdir('.'):
                 else:
                     PORT = config['port']
                     log(f"CONFIG",
-                        f"Set Port as {PORT} From Configuration File")
+                        f"Set Port as ({PORT}) From Configuration File")
             else:
                 log(f"CONFIG",
-                    f"Set Port as {PORT} From Auto-Configuration")
+                    f"Set Port as ({PORT}) From Auto-Configuration")
         except KeyError:
             log(f"CONFIG",
-                f"Set Port as {PORT} From Auto-Configuration")
+                f"Set Port as ({PORT}) From Auto-Configuration")
 
         try:
             if config['password']:
@@ -111,11 +125,10 @@ server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 try:
     server.bind(ADDR)
 except OSError:
-    logger.error(f"[SERVER] Couldn't Host it, Fuck")
+    logger.error(f"[ERROR] Couldn't Host it, Fuck")
     quit()
 
-users = []
-clients = set()
+users = set()
 clients_lock = threading.Lock()
 
 
@@ -158,17 +171,15 @@ def handle_client(connection: socket.socket, address: tuple):
                                               'authorized': True}))
 
                 with clients_lock:
-                    clients.add(connection)
-
-                users.append({'username': client_username, 'sessionid': client_sessionid, 'connection': connection})
+                    users.add(User(client_username, client_sessionid, connection))
 
                 connected = True
 
                 with clients_lock:
-                    if len(clients) != 0:
-                        for a_client in clients:
-                            if a_client:
-                                a_client.send(pickle.dumps(
+                    if len(users) != 0:
+                        for a_user in users:
+                            if a_user.connection == connection:
+                                a_user.connection.send(pickle.dumps(
                                     {
                                         'username': client_username,
                                         'sessionid': client_sessionid,
@@ -177,6 +188,8 @@ def handle_client(connection: socket.socket, address: tuple):
                                         'new': True
                                     }
                                 ))
+
+                            print(f'went to {a_user.username}')
 
                     log(f"{client_username}#{client_sessionid}@{address[0]}:{address[1]}",
                         f"JOINED")
@@ -194,18 +207,20 @@ def handle_client(connection: socket.socket, address: tuple):
                         username = "DEFAULT"
 
                         for user in users:
-                            if user['sessionid'] == sessionid:
-                                username = user['username']
+                            if user.sessionid == sessionid:
+                                username = user.username
 
                         if msg == DISCONNECT_MESSAGE:
                             connected = False
-                            clients.remove(connection)
-                            users.remove({'username': username, 'sessionid': sessionid, 'connection': connection})
+                            for user in users:
+                                if user.sessionid == sessionid:
+                                    users.remove(user)
+
                             with clients_lock:
-                                if len(clients) != 0:
-                                    for a_client in clients:
-                                        if a_client:
-                                            a_client.send(
+                                if len(users) != 0:
+                                    for a_user in users:
+                                        if a_user.connection == connection:
+                                            a_user.connection.send(
                                                 pickle.dumps(
                                                     {
                                                         'username': username,
@@ -225,11 +240,11 @@ def handle_client(connection: socket.socket, address: tuple):
                         else:
                             if msg.strip() != "":
                                 with clients_lock:
-                                    if len(clients) != 0:
-                                        for a_client in clients:
-                                            if a_client:
+                                    if len(users) != 0:
+                                        for a_user in users:
+                                            if a_user.connection:
                                                 try:
-                                                    a_client.send(
+                                                    a_user.connection.send(
                                                         pickle.dumps(
                                                             {
                                                                 'username': username,
@@ -247,15 +262,14 @@ def handle_client(connection: socket.socket, address: tuple):
                                                     f"{msg}")
                     except:
                         connected = False
-                        clients.remove(connection)
-                        users.remove(
-                            {'username': client_username, 'sessionid': client_sessionid, 'connection': connection}
-                        )
+                        for user in users:
+                            if user.sessionid == client_sessionid:
+                                users.remove(user)
                         with clients_lock:
-                            if len(clients) != 0:
-                                for a_client in clients:
-                                    if a_client:
-                                        a_client.send(
+                            if len(users) != 0:
+                                for a_user in users:
+                                    if a_user.connection:
+                                        a_user.connection.send(
                                             pickle.dumps(
                                                 {
                                                     'username': client_username,
@@ -286,13 +300,9 @@ def handle_client(connection: socket.socket, address: tuple):
         pass
 
 
-def start():
-    server.listen()
-    log(f"SERVER", f"Listening on {ADDR[0]}:{ADDR[1]}")
-    while True:
-        conn, addr = server.accept()
-        threading.Thread(target=handle_client, args=(conn, addr)).start()
-
-
 log(f"SERVER", f'Echticka Server is starting...')
-start()
+server.listen()
+log(f"SERVER", f"Listening on {ADDR[0]}:{ADDR[1]}")
+while True:
+    conn, addr = server.accept()
+    threading.Thread(target=handle_client, args=(conn, addr)).start()

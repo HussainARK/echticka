@@ -21,12 +21,6 @@ except KeyboardInterrupt:
 
 if not tcp_port:
     tcp_port = 9024
-else:
-    if int(tcp_port) < 22 or int(tcp_port) > 20000:
-        print(f"Given Port is Invalid")
-        quit()
-    else:
-        tcp_port = int(tcp_port)
 
 DISCONNECT_MESSAGE = "!dc"
 HEADER = 2048
@@ -101,24 +95,15 @@ else:
             try:
                 while True:
                     response = pickle.loads(client.recv(HEADER))
-                    if not response['sessionid'] == "69420NICE":
-                        if not response['sessionid'] == sessionid:
-                            if response['message'] is None:
-                                if response['new']:
-                                    print(f"{response['username']} JOINED THE CHAT")
-                                elif response['disconnected']:
-                                    print(f"{response['username']} LEFT THE CHAT")
-                            else:
-                                print(f"{response['username']}: {response['message']}"
-                                      f"")
-                    else:
-                        print(f"THE SERVER ATTEMPTS TO SHUTDOWN")
-                        send(DISCONNECT_MESSAGE)
-                        print(
-                            f"Disconnected from the Server: {SERVER_ADDR[0]}:{SERVER_ADDR[1]}"
-                            f"")
-                        client.close()
-                        quit()
+                    if not response['sessionid'] == sessionid:
+                        if response['message'] is None:
+                            if response['new']:
+                                print(f"{response['username']} JOINED THE CHAT")
+                            elif response['disconnected']:
+                                print(f"{response['username']} LEFT THE CHAT")
+                        else:
+                            print(f"{response['username']}: {response['message']}"
+                                  f"")
             except:
                 time.sleep(0.01)
                 print(f"Disconnected!?")

@@ -2,7 +2,7 @@
 
 # Echticka
 
-A Basic CLI-Based Communications App.
+A Basic CLI-Based Communications App made using Pure Python 3.7
 
 ![Demo](./demo.png)
 
