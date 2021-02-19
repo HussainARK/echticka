@@ -6,7 +6,7 @@ import socket
 import threading
 import uuid
 
-print(fr"""
+print(fr"""\
  _____     _     _   _      _
 | ____|___| |__ | |_(_) ___| | ____ _
 |  _| / __| '_ \| __| |/ __| |/ / _` |
@@ -109,7 +109,7 @@ for filename in os.listdir('.'):
                     else:
                         PASSWORD = config['password']
                         log(f"CONFIG",
-                            f"Set User Password Access as \"{PASSWORD}\" "
+                            f"Set Server Password as \"{PASSWORD}\" "
                             f"From Configuration File")
             else:
                 log(f"CONFIG",
@@ -125,7 +125,7 @@ server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 try:
     server.bind(ADDR)
 except OSError:
-    logger.error(f"[ERROR] Couldn't Host it, Fuck")
+    logger.error(f"[ERROR] Couldn't Host it, Some error was thrown here or there")
     quit()
 
 users = set()
@@ -188,8 +188,6 @@ def handle_client(connection: socket.socket, address: tuple):
                                         'new': True
                                     }
                                 ))
-
-                            print(f'went to {a_user.username}')
 
                     log(f"{client_username}#{client_sessionid}@{address[0]}:{address[1]}",
                         f"JOINED")
