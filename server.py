@@ -19,7 +19,7 @@ print(r""" _____     _     _   _      _
 | |__| (__| | | | |_| | (__|   < (_| |
 |_____\___|_| |_|\__|_|\___|_|\_\__,_|
 
-Version: v0.1.5-alpha
+Version: v0.1.4-alpha
 Made in Iraq, Enjoyed Everywhere.
 """)
 
