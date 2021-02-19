@@ -7,9 +7,9 @@ A Basic CLI-Based Communications App, Client Code
 import getpass
 import pickle
 import socket
+import sys
 import time
 from threading import Thread
-import sys
 
 GIVEN_USERNAME = None
 GIVEN_HOST = None
@@ -40,7 +40,7 @@ client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 try:
     client.connect(SERVER_ADDR)
-except OSError:
+except:
     print("Couldn't connect to The Server")
     sys.exit()
 
@@ -69,7 +69,7 @@ def send(msg):
     """Basic function to send messages to the server"""
     try:
         client.send(pickle.dumps({'sessionid': sessionid, 'message': msg}))
-    except OSError:
+    except:
         client.close()
         sys.exit()
 
@@ -87,9 +87,8 @@ def get_messages(sure):
                         elif response['disconnected']:
                             print(f"{response['username']} LEFT THE CHAT")
                     else:
-                        print(f"{response['username']}: {response['message']}"
-                                f"")
-        except OSError:
+                        print(f"{response['username']}: {response['message']}")
+        except:
             time.sleep(0.01)
             print("Disconnected!?")
             sys.exit()
@@ -101,7 +100,7 @@ init_resp = object()
 
 try:
     init_resp = pickle.loads(client.recv(HEADER))
-except OSError:
+except:
     send(DISCONNECT_MESSAGE)
     print(f"Disconnected from the Server: {SERVER_ADDR[0]}:{SERVER_ADDR[1]}")
     client.close()

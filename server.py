@@ -9,9 +9,9 @@ import logging
 import os
 import pickle
 import socket
+import sys
 import threading
 import uuid
-import sys
 
 print(r""" _____     _     _   _      _
 | ____|___| |__ | |_(_) ___| | ____ _
@@ -139,7 +139,7 @@ server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 try:
     server.bind(ADDR)
-except OSError:
+except:
     logger.error("[ERROR] Couldn't Host it, Some error was thrown here or there")
     sys.exit()
 
@@ -269,7 +269,7 @@ def handle_client(connection: socket.socket, address: tuple):
                                                             }
                                                         )
                                                     )
-                                                except OSError:
+                                                except:
                                                     connected = False
 
                                         logger.info("[%s" % username +
@@ -277,7 +277,7 @@ def handle_client(connection: socket.socket, address: tuple):
                                                     "%s:" % address[0] +
                                                     "%s]:" % address[1] +
                                                     "%s" % msg)
-                    except OSError:
+                    except:
                         connected = False
                         for user in users:
                             if user.sessionid == client_sessionid:
