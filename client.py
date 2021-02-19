@@ -1,120 +1,131 @@
+"""
+Echticka
+
+A Basic CLI-Based Communications App, Client Code
+"""
+
 import getpass
 import pickle
 import socket
 import time
 from threading import Thread
+import sys
 
-username = None
-tcp_hostname = None
-tcp_port = None
+GIVEN_USERNAME = None
+GIVEN_HOST = None
+GIVEN_PORT = None
 
 try:
-    username = input("Enter your Username: ")
+    GIVEN_USERNAME = input("Enter your Username: ")
 
-    tcp_hostname = input("Server Host: ")
+    GIVEN_HOST = input("Server Host: ")
 
-    tcp_port = input("Server Port (Default: 9024): ")
+    GIVEN_PORT = input("Server Port (Default: 9024): ")
 except EOFError:
-    quit()
+    sys.exit()
 except KeyboardInterrupt:
-    quit()
+    sys.exit()
 
-if not tcp_port:
-    tcp_port = 9024
+if not GIVEN_PORT:
+    GIVEN_PORT = 9024
 
 DISCONNECT_MESSAGE = "!dc"
 HEADER = 2048
 
-SERVER_HOST = socket.gethostbyname(tcp_hostname)
-SERVER_PORT = tcp_port
+SERVER_HOST = socket.gethostbyname(GIVEN_HOST)
+SERVER_PORT = GIVEN_PORT
 SERVER_ADDR = (SERVER_HOST, SERVER_PORT)
 
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 try:
     client.connect(SERVER_ADDR)
-except:
-    print(f"Couldn't connect to The Server")
-    quit()
+except OSError:
+    print("Couldn't connect to The Server")
+    sys.exit()
 
-print(f"Registering the Client...")
+print("Registering the Client...")
 
 init_resp = pickle.loads(client.recv(HEADER))
 
 if init_resp['password_required']:
-    password = None
+    PASSWORD = None
     try:
-        password = getpass.getpass("Server Password: ")
-    except:
-        quit()
-    client.send(pickle.dumps({'username': username, 'password': password}))
+        PASSWORD = getpass.getpass("Server Password: ")
+    except EOFError:
+        client.close()
+        sys.exit()
+    except KeyboardInterrupt:
+        client.close()
+        sys.exit()
+
+    client.send(pickle.dumps({'username': GIVEN_USERNAME, 'password': PASSWORD}))
 else:
-    print(f"No Password needed, Accessing The Server...")
-    client.send(pickle.dumps({'username': username}))
+    print("No Password needed, Accessing The Server...")
+    client.send(pickle.dumps({'username': GIVEN_USERNAME}))
 
 
 def send(msg):
+    """Basic function to send messages to the server"""
     try:
         client.send(pickle.dumps({'sessionid': sessionid, 'message': msg}))
-    except:
+    except OSError:
         client.close()
-        exit()
+        sys.exit()
+
+
+def get_messages(sure):
+    """A Function run on a second thread to log any received messages"""
+    if sure:
+        try:
+            while True:
+                response = pickle.loads(client.recv(HEADER))
+                if not response['sessionid'] == sessionid:
+                    if response['message'] is None:
+                        if response['new']:
+                            print(f"{response['username']} JOINED THE CHAT")
+                        elif response['disconnected']:
+                            print(f"{response['username']} LEFT THE CHAT")
+                    else:
+                        print(f"{response['username']}: {response['message']}"
+                                f"")
+        except OSError:
+            time.sleep(0.01)
+            print("Disconnected!?")
+            sys.exit()
+    else:
+        pass
 
 
 init_resp = object()
 
 try:
     init_resp = pickle.loads(client.recv(HEADER))
-except:
+except OSError:
     send(DISCONNECT_MESSAGE)
-    print(f"Disconnected from the Server: {SERVER_ADDR[0]}:{SERVER_ADDR[1]}"
-          f"")
+    print(f"Disconnected from the Server: {SERVER_ADDR[0]}:{SERVER_ADDR[1]}")
     client.close()
-    quit()
+    sys.exit()
 
 if not init_resp['authorized']:
-    print(f"Wrong Password Given")
-    print(f"Disconnecting")
+    print("Wrong Password Given")
+    print("Disconnecting")
     client.close()
 else:
     sessionid = init_resp['sessionid']
 
     if not init_resp['username']:
-        print(f"Invalid Username")
+        print("Invalid Username")
         client.close()
-        exit()
+        sys.exit()
     else:
         username = init_resp['username']
 
     print(f"Connected to the Server: {SERVER_ADDR[0]}:{SERVER_ADDR[1]}")
-    print(f"You can disconnect using Ctrl+C")
-
-
-    def get_messages(sure):
-        if sure:
-            try:
-                while True:
-                    response = pickle.loads(client.recv(HEADER))
-                    if not response['sessionid'] == sessionid:
-                        if response['message'] is None:
-                            if response['new']:
-                                print(f"{response['username']} JOINED THE CHAT")
-                            elif response['disconnected']:
-                                print(f"{response['username']} LEFT THE CHAT")
-                        else:
-                            print(f"{response['username']}: {response['message']}"
-                                  f"")
-            except:
-                time.sleep(0.01)
-                print(f"Disconnected!?")
-                quit()
-        else:
-            pass
-
-
+    print("You can disconnect using Ctrl+C")
     print(f'You joined as {username} '
           f'with Session ID {sessionid}, '
-          f'Enjoy!\n')
+          'Enjoy!\n')
 
     thread = Thread(target=get_messages, args=(True,))
     thread.start()
@@ -129,7 +140,7 @@ else:
                         f"Disconnected from the Server: {SERVER_ADDR[0]}:{SERVER_ADDR[1]}"
                         f"")
                     client.close()
-                    quit()
+                    sys.exit()
                 else:
                     send(message)
             else:
@@ -137,14 +148,12 @@ else:
 
     except KeyboardInterrupt:
         send(DISCONNECT_MESSAGE)
-        print(f"Disconnected from the Server: {SERVER_ADDR[0]}:{SERVER_ADDR[1]}"
-              f"")
+        print(f"Disconnected from the Server: {SERVER_ADDR[0]}:{SERVER_ADDR[1]}")
         client.close()
-        quit()
+        sys.exit()
 
     except EOFError:
         send(DISCONNECT_MESSAGE)
-        print(f"Disconnected from the Server: {SERVER_ADDR[0]}:{SERVER_ADDR[1]}"
-              f"")
+        print(f"Disconnected from the Server: {SERVER_ADDR[0]}:{SERVER_ADDR[1]}")
         client.close()
-        quit()
+        sys.exit()

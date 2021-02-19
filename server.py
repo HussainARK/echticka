@@ -1,3 +1,9 @@
+"""
+Echticka
+
+A Basic CLI-Based Communications App, Server Code
+"""
+
 import json
 import logging
 import os
@@ -5,19 +11,25 @@ import pickle
 import socket
 import threading
 import uuid
+import sys
 
-print(fr"""\
- _____     _     _   _      _
+print(r""" _____     _     _   _      _
 | ____|___| |__ | |_(_) ___| | ____ _
 |  _| / __| '_ \| __| |/ __| |/ / _` |
 | |__| (__| | | | |_| | (__|   < (_| |
 |_____\___|_| |_|\__|_|\___|_|\_\__,_|
 
-Version: v0.1.1-alpha
-Made in Iraq, Enjoyed Everywhere.""")
+Version: v0.1.5-alpha
+Made in Iraq, Enjoyed Everywhere.
+""")
 
 
 class User:
+    """
+    User
+
+    A Class to define an Echticka user in the current Session
+    """
     def __init__(self, username: str, sessionid: str, connection: socket.socket):
         self.username = username
         self.sessionid = sessionid
@@ -34,89 +46,92 @@ PASSWORD = ""
 logger = logging.getLogger('botto')
 logger.setLevel(logging.DEBUG)
 handler = logging.StreamHandler()
-handler.setFormatter(logging.Formatter(f'%(asctime)s %(message)s'))
+handler.setFormatter(logging.Formatter('%(asctime)s %(message)s'))
 logger.addHandler(handler)
 
 
 def log(sender, message):
-    logger.info(f"[{sender}] {message}")
+    """Log a message in the console"""
+    logger.info("[%s] " % sender + "%s" % message)
 
 
 for filename in os.listdir('.'):
     if filename.strip() == "echticka.config":
-        config = None
+        CONFIG = None
 
         try:
-            config = json.loads(open(filename).read())
+            CONFIG = json.loads(open(filename).read())
         except json.JSONDecodeError:
-            logger.error(f"[ERROR] Can't parse The echticka.config File, using Default Configuration")
+            logger.error("[ERROR] Can't parse The echticka.config File, " \
+                          "using Default Configuration")
             break
 
         try:
-            if config['host']:
+            if CONFIG['host']:
                 try:
-                    num1, num2, num3, num4 = config['host'].split(".")
+                    num1, num2, num3, num4 = CONFIG['host'].split(".")
 
-                    if num1.strip() != "" and num2.strip() != "" and num3.strip() != "" and num4.strip() != "":
+                    if num1.strip() != "" and num2.strip() != "" and \
+                    num3.strip() != "" and num4.strip() != "":
                         if int(num1) >= 0 and int(num2) >= 0 and int(num3) >= 0 and int(num4) >= 0:
-                            HOST = config['host']
-                            log(f"CONFIG",
+                            HOST = CONFIG['host']
+                            log("CONFIG",
                                 f"Set Host as ({HOST}) From Configuration File")
                         else:
-                            log(f"CONFIG",
+                            log("CONFIG",
                                 f"Given Host is Invalid, Set Host as ({HOST}) "
-                                f"From Auto-Configuration")
+                                "From Auto-Configuration")
                     else:
-                        log(f"CONFIG",
+                        log("CONFIG",
                             f"Given Host is Invalid, Set Host as ({HOST}) "
-                            f"From Auto-Configuration")
+                            "From Auto-Configuration")
                 except ValueError:
-                    log(f"CONFIG",
+                    log("CONFIG",
                         f"Given Host is Invalid, Set Host as ({HOST}) "
-                        f"From Auto-Configuration")
+                        "From Auto-Configuration")
             else:
-                log(f"CONFIG",
+                log("CONFIG",
                     f"Set Host as ({HOST}) From Auto-Configuration")
         except KeyError:
-            log(f"CONFIG",
+            log("CONFIG",
                 f"Set Host as ({HOST}) From Auto-Configuration")
 
         try:
-            if config['port']:
-                if config['port'] < 22 or config['port'] > 20000:
-                    log(f"CONFIG",
-                        f"Given Port is Invalid, Port Set From Auto-Configuration")
+            if CONFIG['port']:
+                if CONFIG['port'] < 22 or CONFIG['port'] > 20000:
+                    log("CONFIG",
+                        "Given Port is Invalid, Port Set From Auto-Configuration")
                 else:
-                    PORT = config['port']
-                    log(f"CONFIG",
+                    PORT = CONFIG['port']
+                    log("CONFIG",
                         f"Set Port as ({PORT}) From Configuration File")
             else:
-                log(f"CONFIG",
+                log("CONFIG",
                     f"Set Port as ({PORT}) From Auto-Configuration")
         except KeyError:
-            log(f"CONFIG",
+            log("CONFIG",
                 f"Set Port as ({PORT}) From Auto-Configuration")
 
         try:
-            if config['password']:
-                if config['password'].strip() == "":
+            if CONFIG['password']:
+                if CONFIG['password'].strip() == "":
                     pass
                 else:
-                    if len(config['password']) > 20:
-                        log(f"CONFIG",
-                            f"Given Password is Too Long, No Password Set "
-                            f"From Auto-Configuration")
+                    if len(CONFIG['password']) > 20:
+                        log("CONFIG",
+                            "Given Password is Too Long, No Password Set "
+                            "From Auto-Configuration")
                     else:
-                        PASSWORD = config['password']
-                        log(f"CONFIG",
-                            f"Set Server Password as \"{PASSWORD}\" "
-                            f"From Configuration File")
+                        PASSWORD = CONFIG['password']
+                        log("CONFIG",
+                            "Set Server Password as \"{PASSWORD}\" "
+                            "From Configuration File")
             else:
-                log(f"CONFIG",
-                    f"No Password Set From Auto-Configuration")
+                log("CONFIG",
+                    "No Password Set From Auto-Configuration")
         except KeyError:
-            log(f"CONFIG",
-                f"No Password Set From Auto-Configuration")
+            log("CONFIG",
+                "No Password Set From Auto-Configuration")
 
 ADDR = (HOST, PORT)
 
@@ -125,15 +140,16 @@ server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 try:
     server.bind(ADDR)
 except OSError:
-    logger.error(f"[ERROR] Couldn't Host it, Some error was thrown here or there")
-    quit()
+    logger.error("[ERROR] Couldn't Host it, Some error was thrown here or there")
+    sys.exit()
 
 users = set()
 clients_lock = threading.Lock()
 
 
 def handle_client(connection: socket.socket, address: tuple):
-    log(f"SERVER",
+    """Main function which creates a new thread for each client to handle"""
+    log("SERVER",
         f"New Connection from: {address[0]}:{address[1]}")
 
     if PASSWORD.strip() != "":
@@ -190,9 +206,9 @@ def handle_client(connection: socket.socket, address: tuple):
                                 ))
 
                     log(f"{client_username}#{client_sessionid}@{address[0]}:{address[1]}",
-                        f"JOINED")
+                        "JOINED")
 
-                    log(f"SERVER",
+                    log("SERVER",
                         f"All Connections: {threading.activeCount() - 1}")
 
                 while connected:
@@ -231,9 +247,9 @@ def handle_client(connection: socket.socket, address: tuple):
                                             )
 
                                 log(f"{username}#{sessionid}@{address[0]}:{address[1]}",
-                                    f"DISCONNECTED")
+                                    "DISCONNECTED")
 
-                                log(f"SERVER",
+                                log("SERVER",
                                     f"All Connections: {threading.activeCount() - 2}")
                         else:
                             if msg.strip() != "":
@@ -253,12 +269,15 @@ def handle_client(connection: socket.socket, address: tuple):
                                                             }
                                                         )
                                                     )
-                                                except:
+                                                except OSError:
                                                     connected = False
 
-                                        logger.info(f"[{username}#{sessionid}@{address[0]}:{address[1]}]: "
-                                                    f"{msg}")
-                    except:
+                                        logger.info("[%s" % username +
+                                                    "#%s@" % sessionid +
+                                                    "%s:" % address[0] +
+                                                    "%s]:" % address[1] +
+                                                    "%s" % msg)
+                    except OSError:
                         connected = False
                         for user in users:
                             if user.sessionid == client_sessionid:
@@ -280,9 +299,9 @@ def handle_client(connection: socket.socket, address: tuple):
                                         )
 
                         log(f"{client_username}#{client_sessionid}@{address[0]}:{address[1]}",
-                            f"DISCONNECTED")
+                            "DISCONNECTED")
 
-                        log(f"SERVER",
+                        log("SERVER",
                             f"All Connections: {threading.activeCount() - 2}")
 
                 connection.close()
@@ -298,9 +317,9 @@ def handle_client(connection: socket.socket, address: tuple):
         pass
 
 
-log(f"SERVER", f'Echticka Server is starting...')
+log("SERVER", 'Echticka Server is starting...')
 server.listen()
-log(f"SERVER", f"Listening on {ADDR[0]}:{ADDR[1]}")
+log("SERVER", f"Listening on {ADDR[0]}:{ADDR[1]}")
 while True:
     conn, addr = server.accept()
     threading.Thread(target=handle_client, args=(conn, addr)).start()
