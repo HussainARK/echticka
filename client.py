@@ -120,10 +120,10 @@ else:
     else:
         username = init_resp['username']
 
-    print(f"Connected to the Server: {SERVER_ADDR[0]}:{SERVER_ADDR[1]}")
+    print(f"Connected to the Server ({SERVER_ADDR[0]}:{SERVER_ADDR[1]})")
     print("You can disconnect using Ctrl+C")
-    print(f'You joined as {username} '
-          f'with Session ID {sessionid}, '
+    print(f'You joined as ({username}) '
+          f'with Session ID ({sessionid}), '
           'Enjoy!\n')
 
     thread = Thread(target=get_messages, args=(True,))

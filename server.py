@@ -49,7 +49,6 @@ handler = logging.StreamHandler()
 handler.setFormatter(logging.Formatter('%(asctime)s %(message)s'))
 logger.addHandler(handler)
 
-
 def log(sender, message):
     """Log a message in the console"""
     logger.info("[%s] " % sender + "%s" % message)
@@ -124,7 +123,7 @@ for filename in os.listdir('.'):
                     else:
                         PASSWORD = CONFIG['password']
                         log("CONFIG",
-                            "Set Server Password as \"{PASSWORD}\" "
+                            f"Set Server Password as ({PASSWORD}) "
                             "From Configuration File")
             else:
                 log("CONFIG",
@@ -147,17 +146,25 @@ users = set()
 clients_lock = threading.Lock()
 
 
+def send_to_all(obj: dict):
+    """Forward a message object to all connected clients"""
+    with clients_lock:
+        if len(users) != 0:
+            for a_user in users:
+                a_user.connection.send(pickle.dumps(obj))
+
+
 def handle_client(connection: socket.socket, address: tuple):
     """Main function which creates a new thread for each client to handle"""
-    log("SERVER",
-        f"New Connection from: {address[0]}:{address[1]}")
-
-    if PASSWORD.strip() != "":
-        connection.send(pickle.dumps({'password_required': True}))
-    else:
-        connection.send(pickle.dumps({'password_required': False}))
-
     try:
+        log("SERVER",
+            f"New Connection from: {address[0]}:{address[1]}")
+
+        if PASSWORD.strip() != "":
+            connection.send(pickle.dumps({'password_required': True}))
+        else:
+            connection.send(pickle.dumps({'password_required': False}))
+
         init_resp = pickle.loads(connection.recv(HEADER))
 
         client_username = init_resp['username'] \
@@ -171,149 +178,116 @@ def handle_client(connection: socket.socket, address: tuple):
         if client_username == "" or len(client_username) >= 20:
             connection.send(pickle.dumps({'username': False, 'sessionid': False}))
             connection.close()
-        else:
-            if PASSWORD.strip() != "":
-                if init_resp['password'] != PASSWORD:
-                    connection.send(pickle.dumps({'authorized': False}))
-                    connection.close()
-                else:
-                    pass
 
-            try:
-                client_sessionid = uuid.uuid4().hex[:6]
+        if PASSWORD.strip() != "":
+            if init_resp['password'] != PASSWORD:
+                connection.send(pickle.dumps({'authorized': False}))
+                connection.close()
 
-                connection.send(pickle.dumps({'username': client_username,
-                                              'sessionid': client_sessionid,
-                                              'authorized': True}))
+        client_sessionid = uuid.uuid4().hex[:6]
 
-                with clients_lock:
-                    users.add(User(client_username, client_sessionid, connection))
-
-                connected = True
-
-                with clients_lock:
-                    if len(users) != 0:
-                        for a_user in users:
-                            if a_user.connection == connection:
-                                a_user.connection.send(pickle.dumps(
-                                    {
-                                        'username': client_username,
+        connection.send(pickle.dumps({'username': client_username,
                                         'sessionid': client_sessionid,
-                                        'message': None,
-                                        'disconnected': False,
-                                        'new': True
-                                    }
-                                ))
+                                        'authorized': True}))
 
-                    log(f"{client_username}#{client_sessionid}@{address[0]}:{address[1]}",
-                        "JOINED")
+        with clients_lock:
+            users.add(User(client_username, client_sessionid, connection))
+
+        connected = True
+
+        send_to_all(
+            {
+                'username': client_username,
+                'sessionid': client_sessionid,
+                'message': None,
+                'disconnected': False,
+                'new': True
+            }
+        )
+
+        log(f"{client_username}#{client_sessionid}@{address[0]}:{address[1]}",
+            "JOINED")
+
+        log("SERVER",
+            f"All Connections: {threading.activeCount() - 1}")
+
+        while connected:
+            try:
+                response = pickle.loads(connection.recv(HEADER))
+
+                sessionid = response['sessionid']
+                msg = response['message']
+
+                username = "UNKNOWN"
+
+                for user in users:
+                    if user.sessionid == sessionid:
+                        username = user.username
+
+                if msg == DISCONNECT_MESSAGE:
+                    connected = False
+                    for user in users:
+                        if user.sessionid == sessionid:
+                            users.remove(user)
+
+                    send_to_all(
+                        {
+                            'username': username,
+                            'sessionid': sessionid,
+                            'message': None,
+                            'disconnected': True,
+                            'new': False
+                        }
+                    )
+
+                    log(f"{username}#{sessionid}@{address[0]}:{address[1]}",
+                        "DISCONNECTED")
 
                     log("SERVER",
-                        f"All Connections: {threading.activeCount() - 1}")
-
-                while connected:
-                    try:
-                        response = pickle.loads(connection.recv(HEADER))
-
-                        sessionid = response['sessionid']
-                        msg = response['message']
-
-                        username = "DEFAULT"
-
-                        for user in users:
-                            if user.sessionid == sessionid:
-                                username = user.username
-
-                        if msg == DISCONNECT_MESSAGE:
+                        f"All Connections: {threading.activeCount() - 2}")
+                else:
+                    if msg.strip() != "":
+                        try:
+                            send_to_all(
+                                {
+                                    'username': username,
+                                    'sessionid': sessionid,
+                                    'message': msg,
+                                    'disconnected': False,
+                                    'new': False
+                                }
+                            )
+                        except:
                             connected = False
-                            for user in users:
-                                if user.sessionid == sessionid:
-                                    users.remove(user)
 
-                            with clients_lock:
-                                if len(users) != 0:
-                                    for a_user in users:
-                                        if a_user.connection == connection:
-                                            a_user.connection.send(
-                                                pickle.dumps(
-                                                    {
-                                                        'username': username,
-                                                        'sessionid': sessionid,
-                                                        'message': None,
-                                                        'disconnected': True,
-                                                        'new': False
-                                                    }
-                                                )
-                                            )
+                        logger.info("[%s" % username +
+                                    "#%s@" % sessionid +
+                                    "%s:" % address[0] +
+                                    "%s]: " % address[1] +
+                                    msg)
+            except:
+                connected = False
+                for user in users:
+                    if user.sessionid == client_sessionid:
+                        users.remove(user)
+                send_to_all(
+                    {
+                        'username': client_username,
+                        'sessionid': client_sessionid,
+                        'message': None,
+                        'disconnected': True,
+                        'new': False
+                    }
+                )
 
-                                log(f"{username}#{sessionid}@{address[0]}:{address[1]}",
-                                    "DISCONNECTED")
+                log(f"{client_username}#{client_sessionid}@{address[0]}:{address[1]}",
+                    "DISCONNECTED")
 
-                                log("SERVER",
-                                    f"All Connections: {threading.activeCount() - 2}")
-                        else:
-                            if msg.strip() != "":
-                                with clients_lock:
-                                    if len(users) != 0:
-                                        for a_user in users:
-                                            if a_user.connection:
-                                                try:
-                                                    a_user.connection.send(
-                                                        pickle.dumps(
-                                                            {
-                                                                'username': username,
-                                                                'sessionid': sessionid,
-                                                                'message': msg,
-                                                                'disconnected': False,
-                                                                'new': False
-                                                            }
-                                                        )
-                                                    )
-                                                except:
-                                                    connected = False
+                log("SERVER",
+                    f"All Connections: {threading.activeCount() - 2}")
 
-                                        logger.info("[%s" % username +
-                                                    "#%s@" % sessionid +
-                                                    "%s:" % address[0] +
-                                                    "%s]:" % address[1] +
-                                                    "%s" % msg)
-                    except:
-                        connected = False
-                        for user in users:
-                            if user.sessionid == client_sessionid:
-                                users.remove(user)
-                        with clients_lock:
-                            if len(users) != 0:
-                                for a_user in users:
-                                    if a_user.connection:
-                                        a_user.connection.send(
-                                            pickle.dumps(
-                                                {
-                                                    'username': client_username,
-                                                    'sessionid': client_sessionid,
-                                                    'message': None,
-                                                    'disconnected': True,
-                                                    'new': False
-                                                }
-                                            )
-                                        )
-
-                        log(f"{client_username}#{client_sessionid}@{address[0]}:{address[1]}",
-                            "DISCONNECTED")
-
-                        log("SERVER",
-                            f"All Connections: {threading.activeCount() - 2}")
-
-                connection.close()
-            except OSError:
-                pass
-
-            except EOFError:
-                pass
-    except OSError:
-        pass
-
-    except EOFError:
+        connection.close()
+    except:
         pass
 
 
