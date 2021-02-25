@@ -48,6 +48,14 @@ print("Registering the Client...")
 
 init_resp = pickle.loads(client.recv(HEADER))
 
+try:
+    if init_resp['banned']:
+        print("Your IP Address is banned from accessing the Server")
+        client.close()
+        sys.exit()
+except KeyError:
+    pass
+
 if init_resp['password_required']:
     PASSWORD = None
     try:
@@ -80,16 +88,28 @@ def get_messages(sure):
         try:
             while True:
                 response = pickle.loads(client.recv(HEADER))
-                if not response['sessionid'] == sessionid:
+                if response['shutdown']:
+                    client.close()
+                    print("Server is shutting down, Please connect again later")
+                    sys.exit()
+                if response['sessionid'] == "Server":
+                    print(f"[SERVER] {response['message']}")
+                elif not response['sessionid'] == sessionid:
                     if response['message'] is None:
                         if response['new']:
                             print(f"{response['username']} JOINED THE CHAT")
                         elif response['disconnected']:
                             print(f"{response['username']} LEFT THE CHAT")
+                        elif response['kicked']:
+                            print("You've been kicked out of the Server")
+                            client.close()
+                            sys.exit()
                     else:
                         print(f"{response['username']}: {response['message']}")
+
         except:
             time.sleep(0.01)
+            client.close()
             print("Disconnected!?")
             sys.exit()
     else:
@@ -110,6 +130,7 @@ if not init_resp['authorized']:
     print("Wrong Password Given")
     print("Disconnecting")
     client.close()
+    sys.exit()
 else:
     sessionid = init_resp['sessionid']
 
@@ -131,19 +152,14 @@ else:
 
     try:
         while True:
-            if client:
-                message = input()
-                if message == DISCONNECT_MESSAGE:
-                    send(message)
-                    print(
-                        f"Disconnected from the Server: {SERVER_ADDR[0]}:{SERVER_ADDR[1]}"
-                        f"")
-                    client.close()
-                    sys.exit()
-                else:
-                    send(message)
+            message = input()
+            if message == DISCONNECT_MESSAGE:
+                send(message)
+                print(f"Disconnected from the Server: {SERVER_ADDR[0]}:{SERVER_ADDR[1]}")
+                client.close()
+                sys.exit()
             else:
-                break
+                send(message)
 
     except KeyboardInterrupt:
         send(DISCONNECT_MESSAGE)

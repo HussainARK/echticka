@@ -19,6 +19,6 @@ the Other is for logging Any New Sent Message From Users in the Server.
 ## Setup
 
 1. Download The Latest Client & Server Releases Files from The Releases Tab.
-2. Add Server Configuration in `echticka.config`
+2. Add Server Configuration in `echticka.config` (Optional)
 3. Run The Server Python File in a Server Environment.
 4. Run the Client Python File, Connect to the Server & Enjoy!
