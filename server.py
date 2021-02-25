@@ -545,7 +545,7 @@ def shell():
                                 a_user.connection.close()
 
                                 print(f"[SHELL] Successfully kicked \
-                                       {a_user.username}#{a_user.sessionid} out of the server")
+{a_user.username}#{a_user.sessionid} out of the server")
 
                                 users.remove(a_user)
                                 break
