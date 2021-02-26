@@ -82,41 +82,38 @@ def send(msg):
         sys.exit()
 
 
-def get_messages(sure):
+def get_messages():
     """A Function run on a second thread to log any received messages"""
-    if sure:
-        try:
-            while True:
-                response = pickle.loads(client.recv(HEADER))
-                if response['shutdown']:
-                    client.close()
-                    print("Server is shutting down, Please connect again later")
-                    sys.exit()
-                if response['sessionid'] == "Server":
-                    print(f"[SERVER] {response['message']}")
-                elif not response['sessionid'] == sessionid:
-                    if response['message'] is None:
-                        if response['new']:
-                            print(f"{response['username']} JOINED THE CHAT")
-                        elif response['disconnected']:
-                            print(f"{response['username']} LEFT THE CHAT")
-                        elif response['kicked']:
-                            print("You've been kicked out of the Server")
-                            client.close()
-                            sys.exit()
-                    else:
-                        print(f"{response['username']}: {response['message']}")
+    try:
+        while True:
+            response = pickle.loads(client.recv(HEADER))
+            if response['shutdown']:
+                client.close()
+                print("Server is shutting down, Please connect again later")
+                sys.exit()
+            if response['sessionid'] == "Server":
+                print(f"[SERVER] {response['message']}")
+            elif not response['sessionid'] == sessionid:
+                if response['message'] is None:
+                    if response['new']:
+                        print(f"{response['username']} JOINED THE CHAT")
+                    elif response['disconnected']:
+                        print(f"{response['username']} LEFT THE CHAT")
+                    elif response['kicked']:
+                        print("You've been kicked out of the Server")
+                        client.close()
+                        sys.exit()
+                else:
+                    print(f"{response['username']}: {response['message']}")
 
-        except:
-            time.sleep(0.01)
-            client.close()
-            print("Disconnected!?")
-            sys.exit()
-    else:
-        pass
+    except:
+        time.sleep(0.01)
+        client.close()
+        print("Disconnected!?")
+        sys.exit()
 
 
-init_resp = object()
+init_resp = dict()
 
 try:
     init_resp = pickle.loads(client.recv(HEADER))
@@ -147,7 +144,7 @@ else:
           f'with Session ID ({sessionid}), '
           'Enjoy!\n')
 
-    thread = Thread(target=get_messages, args=(True,))
+    thread = Thread(target=get_messages)
     thread.start()
 
     try:

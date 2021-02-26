@@ -132,7 +132,7 @@ def ban(address: str) -> bool:
 
 def unban(address: str) -> bool:
     """Remove a user from the ban list"""
-    address = address.straddress()
+    address = address.strip()
     if check_address(address):
         config = get_config()
 
@@ -544,8 +544,8 @@ def shell():
 
                                 a_user.connection.close()
 
-                                print(f"[SHELL] Successfully kicked \
-{a_user.username}#{a_user.sessionid} out of the server")
+                                print(f"[SHELL] Successfully kicked " \
+                                      f"{a_user.username}#{a_user.sessionid} out of the server")
 
                                 users.remove(a_user)
                                 break
